@@ -381,142 +381,148 @@
       }
     })();
 
-    // 7. Auto Fetch & Check Latest macOS Installer from GitHub Releases & version.json
+    // 7. Dynamic Fetch & Download Latest macOS Installer
     (function () {
       const repo = "Starydesigner/ShotMock";
-      const apiUrl = `https://api.github.com/repos/${repo}/releases/latest`;
-      const localVersionUrl = `version.json?t=${Date.now()}`;
-      
-      let resolvedRelease = null;
-      let checkReleasePromise = null;
-      let lastCheckTime = 0;
+      const endpoints = [
+        `https://ungh.cc/repos/${repo}/releases/latest`,
+        `https://api.github.com/repos/${repo}/releases/latest`
+      ];
 
-      function applyRelease(assetUrl, assetName, tagOrVersion) {
-        if (!assetUrl) return;
-        resolvedRelease = { url: assetUrl, name: assetName, tag: tagOrVersion };
-        const downloadButtons = document.querySelectorAll('.js-download-btn');
-        downloadButtons.forEach(btn => {
-          btn.href = assetUrl;
-          if (assetName) btn.setAttribute('download', assetName);
-          btn.title = `点击直接下载 ${tagOrVersion || '最新版本'} (${assetName || 'ShotMock.dmg'})`;
+      let latestReleaseInfo = null;
+      let activeFetchPromise = null;
+
+      function parseRelease(data) {
+        if (!data) return null;
+        // GitHub official REST format
+        if (Array.isArray(data.assets)) {
+          const dmg = data.assets.find(a => a.name && a.name.toLowerCase().endsWith('.dmg'))
+            || data.assets.find(a => a.browser_download_url && a.browser_download_url.toLowerCase().endsWith('.dmg'))
+            || data.assets[0];
+          if (dmg && dmg.browser_download_url) {
+            return {
+              url: dmg.browser_download_url,
+              name: dmg.name || dmg.browser_download_url.split('/').pop(),
+              tag: data.tag_name || data.name || ''
+            };
+          }
+        }
+        // Ungh.cc format: { release: { tag: "...", assets: [ ... ] } }
+        const release = data.release || data;
+        if (release && Array.isArray(release.assets)) {
+          const dmg = release.assets.find(a => a.downloadUrl && a.downloadUrl.toLowerCase().endsWith('.dmg'))
+            || release.assets.find(a => a.name && a.name.toLowerCase().endsWith('.dmg'))
+            || release.assets[0];
+          const url = dmg ? (dmg.downloadUrl || dmg.browser_download_url) : null;
+          if (url) {
+            return {
+              url: url,
+              name: dmg.name || url.split('/').pop(),
+              tag: release.tag || release.name || ''
+            };
+          }
+        }
+        return null;
+      }
+
+      // Fetch single endpoint with timeout
+      async function fetchFromEndpoint(url, timeoutMs = 3500) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const res = await fetch(url, { signal: controller.signal, cache: 'no-cache' });
+          clearTimeout(timer);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          const parsed = parseRelease(json);
+          if (!parsed || !parsed.url) throw new Error('No valid dmg asset found');
+          return parsed;
+        } catch (err) {
+          clearTimeout(timer);
+          throw err;
+        }
+      }
+
+      // Query latest release from all sources (race & fallback)
+      function fetchLatestRelease(force = false) {
+        if (!force && activeFetchPromise) return activeFetchPromise;
+
+        activeFetchPromise = Promise.any(
+          endpoints.map(ep => fetchFromEndpoint(ep))
+        ).then(result => {
+          latestReleaseInfo = result;
+          updateButtons(result);
+          return result;
+        }).catch(async (err) => {
+          console.warn('[Download] 并行获取最新安装包失败，依次重试:', err);
+          for (const ep of endpoints) {
+            try {
+              const res = await fetchFromEndpoint(ep, 4000);
+              if (res && res.url) {
+                latestReleaseInfo = res;
+                updateButtons(res);
+                return res;
+              }
+            } catch (e) {}
+          }
+          return null;
         });
-        console.log(`[Download] 已更新下载链接为最新版本: ${tagOrVersion || ''} (${assetName})`);
+
+        return activeFetchPromise;
       }
 
-      // 0. 读取本地 localStorage 缓存（如有）
-      try {
-        const cached = localStorage.getItem('shotmock_latest_release');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed && parsed.url) {
-            applyRelease(parsed.url, parsed.name, parsed.tag);
-          }
-        }
-      } catch (e) {}
-
-      // 核心检查函数：优先请求同源 version.json，同时尝试 GitHub API，确保无速率限制干扰
-      function checkLatestRelease(force = false) {
-        const now = Date.now();
-        if (!force && checkReleasePromise && now - lastCheckTime < 30000) {
-          return checkReleasePromise;
-        }
-        lastCheckTime = now;
-
-        checkReleasePromise = (async () => {
-          // 步骤 1：先检查同源 version.json（无 Rate Limit，极速且 100% 稳定）
-          try {
-            const vRes = await fetch(localVersionUrl, { cache: 'no-store' });
-            if (vRes.ok) {
-              const vData = await vRes.json();
-              if (vData && (vData.browser_download_url || vData.downloadUrl)) {
-                const url = vData.browser_download_url || vData.downloadUrl;
-                const name = vData.name || 'ShotMock.dmg';
-                const tag = vData.tag || vData.version || '最新版本';
-                applyRelease(url, name, tag);
-                try {
-                  localStorage.setItem('shotmock_latest_release', JSON.stringify({ url, name, tag }));
-                } catch (e) {}
-              }
-            }
-          } catch (err) {
-            // version.json 读取非致命，继续尝试 GitHub API
-          }
-
-          // 步骤 2：并行/接力尝试 GitHub REST API（带 4 秒超时控制器）
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 4000);
-            const ghRes = await fetch(apiUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
-
-            if (ghRes.ok) {
-              const release = await ghRes.json();
-              if (release && Array.isArray(release.assets)) {
-                const macAsset = release.assets.find(a => a.name && a.name.toLowerCase().endsWith('.dmg'))
-                  || release.assets.find(a => a.name && (a.name.toLowerCase().endsWith('.zip') || a.name.toLowerCase().endsWith('.pkg')));
-
-                if (macAsset && macAsset.browser_download_url) {
-                  const tag = release.name || release.tag_name || "最新版本";
-                  applyRelease(macAsset.browser_download_url, macAsset.name, tag);
-                  try {
-                    localStorage.setItem('shotmock_latest_release', JSON.stringify({
-                      url: macAsset.browser_download_url,
-                      name: macAsset.name,
-                      tag: tag
-                    }));
-                  } catch (e) {}
-                }
-              }
-            } else if (ghRes.status === 403) {
-              console.warn("[Download] GitHub API 触发频次限制 (403 Rate Limit)，已采用本地静态/缓存版本。");
-            }
-          } catch (ghErr) {
-            console.warn("[Download] GitHub API 获取失败或超时:", ghErr.message || ghErr);
-          }
-
-          return resolvedRelease;
-        })();
-
-        return checkReleasePromise;
+      function updateButtons(info) {
+        if (!info || !info.url) return;
+        const buttons = document.querySelectorAll('.js-download-btn');
+        buttons.forEach(btn => {
+          btn.href = info.url;
+          btn.setAttribute('download', info.name);
+          btn.title = `点击直接下载 ${info.tag} (${info.name})`;
+        });
+        console.log(`[Download] 成功获取最新安装包: ${info.tag} - ${info.name}`);
       }
 
-      // 页面载入时立即自动检查
-      checkLatestRelease();
+      // 页面载入时非阻塞静默预热获取最新版本
+      fetchLatestRelease();
 
-      // 绑定点击与悬停事件：点击下载时若尚未完成检查，则等待检查完成后再触发下载
+      // 每次点击下载时，动态获取并下载最新版本
       const downloadButtons = document.querySelectorAll('.js-download-btn');
       downloadButtons.forEach(btn => {
-        // 鼠标移入或触摸时预检
         btn.addEventListener('pointerenter', () => {
-          if (!resolvedRelease) checkLatestRelease();
+          if (!latestReleaseInfo) fetchLatestRelease();
         }, { passive: true });
 
         btn.addEventListener('click', async (e) => {
-          // 如果尚未完成最新版本解析，拦截点击并等待解析完成
-          if (!resolvedRelease) {
-            e.preventDefault();
-            btn.style.opacity = '0.75';
-            btn.style.pointerEvents = 'none';
+          e.preventDefault();
 
-            try {
-              await checkLatestRelease(true);
-            } catch (err) {
-              console.warn(err);
-            } finally {
-              btn.style.opacity = '';
-              btn.style.pointerEvents = '';
-            }
+          btn.style.pointerEvents = 'none';
+          btn.style.opacity = '0.75';
 
-            // 触发下载
-            const downloadUrl = btn.href;
-            if (downloadUrl) {
-              const tempA = document.createElement('a');
-              tempA.href = downloadUrl;
-              tempA.setAttribute('download', btn.getAttribute('download') || 'ShotMock.dmg');
-              document.body.appendChild(tempA);
-              tempA.click();
-              document.body.removeChild(tempA);
+          try {
+            // 每次点击都获取最新的版本信息
+            const latest = await fetchLatestRelease(true);
+            const downloadUrl = (latest && latest.url) ? latest.url : btn.href;
+            const fileName = (latest && latest.name) ? latest.name : (btn.getAttribute('download') || 'ShotMock.dmg');
+
+            if (downloadUrl && !downloadUrl.includes('javascript:') && !downloadUrl.includes('#')) {
+              btn.href = downloadUrl;
+              btn.setAttribute('download', fileName);
+
+              const a = document.createElement('a');
+              a.href = downloadUrl;
+              a.setAttribute('download', fileName);
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
             }
+          } catch (err) {
+            console.error('[Download] 获取最新版本失败:', err);
+            if (btn.href && !btn.href.includes('javascript:') && !btn.href.includes('#')) {
+              window.location.href = btn.href;
+            }
+          } finally {
+            btn.style.pointerEvents = '';
+            btn.style.opacity = '';
           }
         });
       });
