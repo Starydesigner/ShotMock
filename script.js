@@ -379,6 +379,44 @@
           }
         }, 2200);
       }
+
+      // Scene 5: 3D Spatial Stage Mouse Tracking Tilt
+      const stage3d = document.getElementById('stage3d');
+      const studio3dScene = document.getElementById('studio3dScene');
+      const camRotVal = document.getElementById('camRotVal');
+
+      if (stage3d && studio3dScene) {
+        let isHovered = false;
+
+        stage3d.addEventListener('mouseenter', () => {
+          isHovered = true;
+          studio3dScene.style.transition = 'transform 0.08s ease-out';
+        });
+
+        stage3d.addEventListener('mouseleave', () => {
+          isHovered = false;
+          studio3dScene.style.transition = 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+          studio3dScene.style.transform = '';
+          if (camRotVal) {
+            camRotVal.textContent = 'X: -12° Y: 18°';
+          }
+        });
+
+        stage3d.addEventListener('mousemove', (e) => {
+          if (!isHovered) return;
+          const rect = stage3d.getBoundingClientRect();
+          const x = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
+          const y = (e.clientY - rect.top) / rect.height - 0.5;
+
+          const rotX = (-y * 22).toFixed(1);
+          const rotY = (x * 26).toFixed(1);
+
+          studio3dScene.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+          if (camRotVal) {
+            camRotVal.textContent = `X: ${rotX}° Y: ${rotY}°`;
+          }
+        }, { passive: true });
+      }
     })();
 
     // 7. Dynamic Fetch & Download Latest macOS Installer

@@ -1449,7 +1449,416 @@
       border-radius: 4px;
     }
 
-    /* SCENE BAR (4 SCENES WITH STORY PROGRESS BARS) */
+    /* SCENE 5: 3D SPATIAL STAGE (SceneKit Dual Device Mockup) */
+    .demo-stage-3d {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      perspective: 1200px;
+      background: radial-gradient(circle at 50% 30%, rgba(20, 26, 38, 0.9) 0%, rgba(8, 10, 15, 0.98) 80%);
+    }
+
+    /* HUD Corner Pill Badges */
+    .hud-pill-tag {
+      position: absolute;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 20px;
+      font-size: 10.5px;
+      font-family: var(--font-pixel);
+      color: var(--cyan);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      z-index: 10;
+      pointer-events: none;
+    }
+    .hud-pill-tl {
+      top: 14px;
+      left: 16px;
+    }
+    .hud-pill-tr {
+      top: 14px;
+      right: 16px;
+      color: var(--accent);
+      border-color: rgba(232, 139, 82, 0.25);
+    }
+    .hud-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    /* 3D Studio Spatial Container */
+    .studio-3d-scene {
+      width: 100%;
+      height: 100%;
+      max-width: 580px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.15s ease-out;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 3D Floor Perspective Grid */
+    .studio-floor-grid {
+      position: absolute;
+      bottom: -40px;
+      width: 140%;
+      height: 180px;
+      left: -20%;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 28px 28px;
+      transform: rotateX(68deg) translateZ(-60px);
+      mask-image: radial-gradient(ellipse at 50% 30%, black 20%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 20%, transparent 75%);
+      pointer-events: none;
+    }
+
+    /* Background Device: Studio Display (Desktop) */
+    .device-3d-mac {
+      position: absolute;
+      top: 28px;
+      left: 36px;
+      width: 380px;
+      transform: translateZ(-40px) rotateY(14deg) rotateX(4deg);
+      transform-origin: center center;
+      z-index: 1;
+      filter: drop-shadow(0 24px 36px rgba(0, 0, 0, 0.6));
+    }
+    .device-mac-chin {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .device-mac-screen {
+      width: 100%;
+      height: 230px;
+      background: #0f131a;
+      border: 6px solid #1e2430;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 30px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+    .device-mac-screen::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .device-mac-menubar {
+      height: 20px;
+      background: #161b24;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 5px;
+    }
+    .mac-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .mac-dot.red { background: #ef4444; }
+    .mac-dot.yellow { background: #eab308; }
+    .mac-dot.green { background: #22c55e; }
+    .mac-title-hint {
+      margin-left: 8px;
+      font-size: 8.5px;
+      font-family: var(--font-pixel);
+      color: var(--text-muted);
+    }
+    .device-mac-content {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: radial-gradient(ellipse at 80% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
+    }
+    .mac-chart-bar-wrap {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      height: 100px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 6px;
+    }
+    .mac-chart-col {
+      flex: 1;
+      background: linear-gradient(to top, rgba(56, 189, 248, 0.3), var(--cyan));
+      border-radius: 3px 3px 0 0;
+      transition: height 0.3s ease;
+    }
+    .mac-code-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .mac-line {
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+    }
+    .mac-line.w70 { width: 70%; }
+    .mac-line.w90 { width: 90%; }
+    .mac-line.w50 { width: 50%; }
+
+    .device-mac-stand {
+      width: 48px;
+      height: 24px;
+      background: linear-gradient(to bottom, #2b3342, #181e29);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+    .device-mac-base {
+      width: 120px;
+      height: 6px;
+      background: linear-gradient(to bottom, #3b4557, #1e2634);
+      border-radius: 3px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Foreground Device: iPhone 16 Pro (3D Floating Tilt) */
+    .device-3d-phone {
+      position: absolute;
+      bottom: 22px;
+      right: 48px;
+      width: 175px;
+      height: 310px;
+      transform: translateZ(60px) rotateY(-18deg) rotateX(10deg) rotateZ(-3deg);
+      transform-origin: center center;
+      z-index: 5;
+    }
+    .phone-outer-frame {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(145deg, #474f5d 0%, #1f2530 40%, #2f3747 100%);
+      border-radius: 38px;
+      padding: 5px;
+      position: relative;
+      box-shadow: 
+        0 30px 60px rgba(0, 0, 0, 0.8),
+        0 10px 24px rgba(0, 0, 0, 0.6),
+        inset 0 1px 1px rgba(255, 255, 255, 0.4),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.8);
+    }
+    /* Titanium Rim Sheen */
+    .phone-titanium-rim {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      right: 1px;
+      bottom: 1px;
+      border-radius: 37px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      pointer-events: none;
+    }
+    .phone-inner-screen {
+      width: 100%;
+      height: 100%;
+      background: #080b11;
+      border-radius: 33px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(0, 0, 0, 0.8);
+    }
+    /* Dynamic Island */
+    .phone-island-pill {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 54px;
+      height: 15px;
+      background: #000000;
+      border-radius: 10px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 6px;
+      box-shadow: 0 0 1px rgba(255, 255, 255, 0.2);
+    }
+    .phone-lens {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #0a1128;
+      border: 1px solid rgba(34, 197, 94, 0.6);
+      box-shadow: inset 0 0 2px #38bdf8;
+    }
+    /* Phone Screen UI */
+    .phone-screen-ui {
+      flex: 1;
+      padding: 34px 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: linear-gradient(180deg, #0e1420 0%, #06090e 100%);
+    }
+    .phone-app-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .phone-app-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+    .phone-app-brand {
+      font-size: 10px;
+      font-weight: 700;
+      font-family: var(--font-pixel);
+      color: #ffffff;
+      letter-spacing: 0.05em;
+    }
+    .phone-card-hero {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .phone-hero-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      flex-shrink: 0;
+    }
+    .phone-hero-lines {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .ph-line-1 {
+      height: 5px;
+      width: 85%;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 2px;
+    }
+    .ph-line-2 {
+      height: 4px;
+      width: 55%;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 2px;
+    }
+    .phone-widget-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .ph-widget-pill {
+      font-size: 9px;
+      font-family: var(--font-pixel);
+      color: var(--text-sub);
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .ph-widget-pill.active {
+      color: var(--accent);
+      background: rgba(232, 139, 82, 0.08);
+      border-color: rgba(232, 139, 82, 0.3);
+    }
+    /* Diagonal Glass Screen Glare */
+    .phone-screen-glare {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 150%;
+      height: 100%;
+      background: linear-gradient(115deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.02) 25%, transparent 50%);
+      transform: translateX(-20%);
+      pointer-events: none;
+    }
+    /* Depth Blur Shadow below Phone */
+    .phone-depth-shadow {
+      position: absolute;
+      bottom: -22px;
+      left: 10%;
+      width: 80%;
+      height: 30px;
+      background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85) 0%, transparent 75%);
+      filter: blur(8px);
+      transform: translateZ(-30px);
+      pointer-events: none;
+    }
+
+    /* HUD Camera & Telemetry Bar */
+    .cam-info-bar {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      padding: 6px 14px;
+      background: rgba(10, 14, 22, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 6px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+      white-space: nowrap;
+    }
+    .cam-info-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-pixel);
+      font-size: 9.5px;
+    }
+    .cam-lbl {
+      color: var(--text-muted);
+    }
+    .cam-val {
+      color: #ffffff;
+    }
+    .cam-info-item.highlight .cam-val {
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    /* SCENE BAR (5 SCENES WITH STORY PROGRESS BARS) */
     .scene-bar {
       margin-top: 24px;
       text-align: center;
@@ -2602,6 +3011,48 @@
         margin: 0;
       }
 
+      /* Scene 5 (3D Spatial Stage) Mobile */
+      .demo-stage-3d {
+        perspective: 800px;
+      }
+      .hud-pill-tag {
+        font-size: 8.5px;
+        padding: 3px 8px;
+      }
+      .hud-pill-tl {
+        top: 8px;
+        left: 8px;
+      }
+      .hud-pill-tr {
+        top: 8px;
+        right: 8px;
+      }
+      .studio-3d-scene {
+        transform: scale(0.68);
+        transform-origin: center center;
+      }
+      .device-3d-mac {
+        left: -10px;
+        top: 20px;
+        width: 310px;
+      }
+      .device-3d-phone {
+        right: 15px;
+        bottom: 25px;
+        width: 140px;
+        height: 255px;
+      }
+      .cam-info-bar {
+        bottom: 6px;
+        padding: 4px 10px;
+        gap: 8px;
+        font-size: 8px;
+      }
+      .cam-info-item:nth-child(2),
+      .cam-info-item:nth-child(3) {
+        display: none;
+      }
+
       /* Scene Bar & Pills */
       .scene-bar {
         margin-top: 16px;
@@ -2611,10 +3062,10 @@
         flex-direction: row;
         align-items: center;
         justify-content: center;
-        gap: 4px;
-        padding: 4px;
+        gap: 3px;
+        padding: 3px;
         width: 100%;
-        max-width: 460px;
+        max-width: 480px;
         margin: 0 auto 16px;
         border-radius: 9px;
         overflow-x: auto;
@@ -2627,8 +3078,8 @@
       .scene-pill {
         flex: 1 1 0;
         min-width: 0;
-        padding: 8px 3px 10px;
-        font-size: 12px;
+        padding: 7px 2px 9px;
+        font-size: 11.5px;
         border-radius: 6px;
         letter-spacing: 0;
         white-space: nowrap;
@@ -2854,13 +3305,20 @@
         line-height: 1.18;
       }
       .scene-pills {
-        gap: 3px;
+        gap: 2px;
         padding: 3px;
         max-width: 100%;
       }
       .scene-pill {
-        padding: 7px 2px 9px;
-        font-size: 11px;
+        padding: 6px 1px 8px;
+        font-size: 10.5px;
+      }
+      .studio-3d-scene {
+        transform: scale(0.55);
+      }
+      .hud-pill-tag {
+        font-size: 7.5px;
+        padding: 2px 6px;
       }
       .scene-title {
         font-size: 18px;
