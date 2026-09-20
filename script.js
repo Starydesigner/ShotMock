@@ -654,3 +654,47 @@
         }
       });
     })();
+
+    // 10. PRO Beta Modal Open/Close Logic (Xiaohongshu Group QR)
+    (function () {
+      const openBtn = document.getElementById('btnOpenBetaModal');
+      const modal = document.getElementById('betaModal');
+      const closeBtn = document.getElementById('closeBetaModal');
+
+      function openBetaModal() {
+        if (modal) {
+          modal.classList.add('show');
+          modal.setAttribute('aria-hidden', 'false');
+          document.body.style.overflow = 'hidden';
+        }
+      }
+
+      function closeBetaModal() {
+        if (modal) {
+          modal.classList.remove('show');
+          modal.setAttribute('aria-hidden', 'true');
+          document.body.style.overflow = '';
+        }
+      }
+
+      window.openBetaModal = openBetaModal;
+      window.closeBetaModal = closeBetaModal;
+
+      if (openBtn) {
+        openBtn.addEventListener('click', openBetaModal);
+      }
+      if (closeBtn) {
+        closeBtn.addEventListener('click', closeBetaModal);
+      }
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) closeBetaModal();
+        });
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal && modal.classList.contains('show')) {
+          closeBetaModal();
+        }
+      });
+    })();
