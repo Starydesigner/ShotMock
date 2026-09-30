@@ -130,18 +130,27 @@
             const cy = y - H / 2;
             const cDist = Math.sqrt(cx * cx + cy * cy);
             const maxCDist = Math.sqrt(W * W + H * H) * 0.5;
-            const baseFade = Math.max(0, 1 - cDist / maxCDist);
+            const centerFactor = Math.max(0.35, 1 - (cDist / maxCDist) * 0.65);
 
-            const glow = Math.max(0, 1 - mDist / 160);
-            const alpha = baseFade * 0.16 + glow * 0.7;
+            // Default resting alpha lowered (~0.08 - 0.11) for softer, whisper-clean presence
+            const baseAlpha = 0.06 + centerFactor * 0.05;
 
-            if (alpha < 0.02) continue;
+            // Bottom gradient fade-out: smoothly dissolves code particles across the lower portion
+            const bottomFadeZone = Math.min(220, H * 0.35);
+            const bottomFade = Math.min(1, Math.max(0, (H - y) / bottomFadeZone));
+            const bottomEase = bottomFade * bottomFade;
 
-            if (glow > 0.08) {
-              ctx.fillStyle = `rgba(232, 139, 82, ${Math.min(1, alpha * 1.25).toFixed(3)})`;
-            } else {
-              ctx.fillStyle = `rgba(241, 245, 249, ${alpha.toFixed(3)})`;
+            const glow = Math.max(0, 1 - mDist / 175);
+
+            let activeAlpha = baseAlpha;
+            if (glow > 0.03) {
+              activeAlpha = Math.min(0.90, baseAlpha + glow * 0.78);
             }
+
+            const finalAlpha = activeAlpha * bottomEase;
+            if (finalAlpha < 0.006) continue;
+
+            ctx.fillStyle = `rgba(37, 137, 245, ${finalAlpha.toFixed(3)})`;
             ctx.fillText(grid[r][c], x, y);
           }
         }
@@ -177,8 +186,8 @@
       const obs = new IntersectionObserver((entries) => {
         isVisible = entries[0].isIntersecting;
       }, { threshold: 0 });
-      const hero = document.getElementById('hero');
-      if (hero) obs.observe(hero);
+      const heroStage = document.getElementById('hero-stage') || document.getElementById('hero');
+      if (heroStage) obs.observe(heroStage);
 
       function loop() {
         if (isVisible && !document.hidden) {
@@ -205,22 +214,22 @@
       nav.classList.toggle('scrolled', window.scrollY > 20);
     }, { passive: true });
 
-    // 5. Scene Switcher & 3-Second Auto Carousel (4 Scenes: 基础截图 / 连续截图 / 自动套壳 / 自动水印)
+    // 5. Scene Switcher & 3.6s Auto Carousel (5 Scenes with Story-Style Progress Bars)
     (function () {
       const pills = document.querySelectorAll('.scene-pill');
       const layers = document.querySelectorAll('.scene-layer');
       const titleEl = document.getElementById('scene-title');
       const descEl = document.getElementById('scene-desc');
       const demoSection = document.querySelector('.demo-section');
+      const scenePillsContainer = document.querySelector('.scene-pills');
       
       let currentIndex = 0;
-      let timer = null;
-      let isPaused = false;
-
       const SCENE_DURATION = 3600; // 每个场景播放 3.6 秒
       let progressTimer = null;
-      let startTime = Date.now();
-      let elapsedPaused = 0;
+      let currentProgress = 0; // 累计毫秒数 0 ~ SCENE_DURATION
+      let lastTick = Date.now();
+      let isHovered = false;
+      let isVisible = true;
 
       function resetAllProgressBars() {
         pills.forEach(p => {
@@ -253,8 +262,8 @@
         if (descEl) descEl.textContent = targetPill.getAttribute('data-desc');
 
         resetAllProgressBars();
-        startTime = Date.now();
-        elapsedPaused = 0;
+        currentProgress = 0;
+        lastTick = Date.now();
       }
 
       function nextScene() {
@@ -263,48 +272,55 @@
       }
 
       function startProgressLoop() {
-        stopProgressLoop();
-        startTime = Date.now() - elapsedPaused;
+        if (progressTimer) clearInterval(progressTimer);
+        lastTick = Date.now();
 
         progressTimer = setInterval(() => {
-          if (!isPaused && !document.hidden) {
-            const elapsed = Date.now() - startTime;
-            const percent = (elapsed / SCENE_DURATION) * 100;
+          const now = Date.now();
+          const delta = Math.min(150, now - lastTick); // 防止切后台时单帧步进过大
+          lastTick = now;
+
+          if (!isHovered && !document.hidden && isVisible) {
+            currentProgress += delta;
+            const percent = (currentProgress / SCENE_DURATION) * 100;
             updateActiveProgressBar(percent);
 
-            if (elapsed >= SCENE_DURATION) {
+            if (currentProgress >= SCENE_DURATION) {
+              currentProgress = 0;
               nextScene();
             }
-          } else if (isPaused) {
-            elapsedPaused = Date.now() - startTime;
           }
         }, 30);
-      }
-
-      function stopProgressLoop() {
-        if (progressTimer) {
-          clearInterval(progressTimer);
-          progressTimer = null;
-        }
       }
 
       // 手动点击切换并重置进度条
       pills.forEach((pill, idx) => {
         pill.addEventListener('click', () => {
           switchScene(idx);
-          startProgressLoop();
         });
       });
 
-      // 悬停暂停进度条，移出恢复充能
-      if (demoSection) {
-        demoSection.addEventListener('mouseenter', () => { 
-          isPaused = true; 
+      // 仅在鼠标悬停在 Tab 胶囊条（.scene-pills）本身时才暂停，移开立即继续；
+      // 绝不在整个 .demo-section 大区域上监听 mouseenter，避免用户滚动页面时鼠标恰好划过而误触暂停
+      if (scenePillsContainer) {
+        scenePillsContainer.addEventListener('mouseenter', () => { 
+          isHovered = true; 
         });
-        demoSection.addEventListener('mouseleave', () => { 
-          isPaused = false; 
-          startTime = Date.now() - elapsedPaused;
+        scenePillsContainer.addEventListener('mouseleave', () => { 
+          isHovered = false; 
+          lastTick = Date.now();
         });
+      }
+
+      // 当展示区完全滑出屏幕视口时节流暂停，滑入视口时流畅恢复（阈值设为 0.05 只要在视野中就平滑轮播）
+      if ('IntersectionObserver' in window && demoSection) {
+        const obs = new IntersectionObserver((entries) => {
+          isVisible = entries[0].isIntersecting;
+          if (isVisible) {
+            lastTick = Date.now();
+          }
+        }, { threshold: 0.05 });
+        obs.observe(demoSection);
       }
 
       // 启动 Story 进度条充能轮播
